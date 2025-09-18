@@ -4,40 +4,173 @@
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#2563eb" />
     <meta
       name="description"
-      content="Web site created using create-react-app"
+      content="AI-powered video proctoring system for online interviews with focus and object detection capabilities."
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
+    <meta
+      name="keywords"
+      content="video proctoring, AI monitoring, online interviews, focus detection, object detection"
+    />
+    <meta name="author" content="ProctorAI Team" />
 
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://proctoring.example.com/" />
+    <meta
+      property="og:title"
+      content="ProctorAI - AI-Powered Video Proctoring"
+    />
+    <meta
+      property="og:description"
+      content="Advanced video proctoring system with AI-driven focus and object detection for secure online interviews."
+    />
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.jpg" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://proctoring.example.com/" />
+    <meta
+      property="twitter:title"
+      content="ProctorAI - AI-Powered Video Proctoring"
+    />
+    <meta
+      property="twitter:description"
+      content="Advanced video proctoring system with AI-driven focus and object detection for secure online interviews."
+    />
+    <meta property="twitter:image" content="%PUBLIC_URL%/twitter-image.jpg" />
+
+    <!-- Apple Touch Icon -->
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+
+    <!-- Progressive Web App -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- Preload critical fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+
+    <title>ProctorAI - AI-Powered Video Proctoring</title>
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      <div
+        style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 100vh;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          text-align: center;
+          padding: 20px;
+        "
+      >
+        <h1 style="color: #1f2937; margin-bottom: 16px">JavaScript Required</h1>
+        <p style="color: #6b7280; max-width: 400px; line-height: 1.6">
+          ProctorAI requires JavaScript to function properly. Please enable
+          JavaScript in your browser settings and refresh this page.
+        </p>
+        <button
+          onclick="window.location.reload()"
+          style="
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+          "
+          nonce="noscript-button"
+        >
+          Refresh Page
+        </button>
+      </div>
+    </noscript>
+
+    <!-- Loading screen -->
+    <div
+      id="initial-loader"
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        color: white;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      "
+    >
+      <div
+        style="
+          width: 50px;
+          height: 50px;
+          border: 4px solid rgba(255, 255, 255, 0.3);
+          border-top: 4px solid white;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin-bottom: 20px;
+        "
+      ></div>
+      <h2 style="margin: 0 0 10px 0; font-weight: 600">ProctorAI</h2>
+      <p style="margin: 0; opacity: 0.8">
+        Loading AI-powered proctoring system...
+      </p>
+
+      <style>
+        @keyframes spin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+      </style>
+    </div>
+
+    <!-- Main app container -->
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+    <!-- Hide loader once React loads -->
+    <script nonce="loader-script">
+      // Hide initial loader once React starts
+      window.addEventListener("load", function () {
+        setTimeout(function () {
+          const loader = document.getElementById("initial-loader");
+          if (loader) {
+            loader.style.opacity = "0";
+            loader.style.transition = "opacity 0.5s ease-out";
+            setTimeout(() => loader.remove(), 500);
+          }
+        }, 1000);
+      });
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+      // Handle offline/online status
+      window.addEventListener("offline", function () {
+        document.body.style.filter = "grayscale(100%)";
+      });
+
+      window.addEventListener("online", function () {
+        document.body.style.filter = "none";
+      });
+    </script>
   </body>
 </html>
