@@ -19,7 +19,7 @@ const createInterview = async (req, res) => {
       });
     }
 
-    const { title, candidateEmail, scheduledAt, duration, settings } = req.body;
+    const { title, candidateEmail, scheduledAt, duration, settings, category } = req.body;
 
     // Find candidate by email
     const candidate = await User.findOne({
@@ -41,6 +41,7 @@ const createInterview = async (req, res) => {
       interviewer: req.user.id,
       scheduledAt: new Date(scheduledAt),
       duration,
+      category: category || 'frontend-js',
       settings: {
         ...settings,
         enableFocusDetection: settings?.enableFocusDetection ?? true,
@@ -142,6 +143,13 @@ const getInterview = async (req, res) => {
     }
 
     // Check if user has access to this interview
+    console.log("🔍 Access check:", {
+      candidateId: interview.candidate._id.toString(),
+      interviewerId: interview.interviewer._id.toString(),
+      userId: req.user.id,
+      userRole: req.user.role
+    });
+
     if (
       interview.candidate._id.toString() !== req.user.id &&
       interview.interviewer._id.toString() !== req.user.id &&
@@ -151,6 +159,55 @@ const getInterview = async (req, res) => {
         success: false,
         message: "Access denied to this interview",
       });
+    }
+
+    // Check if interview is completed and prevent re-opening
+    if (interview.status === 'completed') {
+      return res.status(403).json({
+        success: false,
+        message: "Interview has already been completed",
+        interview: {
+          ...interview.toObject(),
+          accessDenied: true,
+          reason: "completed"
+        }
+      });
+    }
+
+    // Check if interview is scheduled for future (only for candidates)
+    const now = new Date();
+    const scheduledTime = new Date(interview.scheduledAt);
+    const endTime = new Date(scheduledTime.getTime() + interview.duration * 60000);
+
+    if (req.user.role === 'candidate' && interview.status === 'scheduled') {
+      if (now < scheduledTime) {
+        return res.status(403).json({
+          success: false,
+          message: "Interview has not started yet. Please wait until the scheduled time.",
+          interview: {
+            ...interview.toObject(),
+            accessDenied: true,
+            reason: "not_started",
+            scheduledAt: interview.scheduledAt,
+            currentTime: now
+          }
+        });
+      }
+      
+      if (now > endTime) {
+        return res.status(403).json({
+          success: false,
+          message: "Interview time has expired. The interview window has closed.",
+          interview: {
+            ...interview.toObject(),
+            accessDenied: true,
+            reason: "expired",
+            scheduledAt: interview.scheduledAt,
+            endTime: endTime,
+            currentTime: now
+          }
+        });
+      }
     }
 
     // Get detection logs for this interview
@@ -186,14 +243,15 @@ const startInterview = async (req, res) => {
       });
     }
 
-    // Check access permissions
+    // Check access permissions - allow candidate to start their own interview
     if (
       interview.interviewer.toString() !== req.user.id &&
+      interview.candidate.toString() !== req.user.id &&
       req.user.role !== "admin"
     ) {
       return res.status(403).json({
         success: false,
-        message: "Only interviewer can start the interview",
+        message: "Only interviewer or candidate can start the interview",
       });
     }
 
@@ -240,14 +298,15 @@ const endInterview = async (req, res) => {
       });
     }
 
-    // Check access permissions
+    // Check access permissions - allow candidate to end their own interview
     if (
       interview.interviewer.toString() !== req.user.id &&
+      interview.candidate.toString() !== req.user.id &&
       req.user.role !== "admin"
     ) {
       return res.status(403).json({
         success: false,
-        message: "Only interviewer can end the interview",
+        message: "Only interviewer or candidate can end the interview",
       });
     }
 
@@ -276,6 +335,78 @@ const endInterview = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error ending interview",
+    });
+  }
+};
+
+// @desc    Delete interview
+// @route   DELETE /api/interviews/:id
+// @access  Private
+const deleteInterview = async (req, res) => {
+  try {
+    const interview = await Interview.findById(req.params.id);
+
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        message: "Interview not found",
+      });
+    }
+
+    // Check access permissions - only interviewer, admin, or candidate can delete
+    if (
+      interview.interviewer.toString() !== req.user.id &&
+      interview.candidate.toString() !== req.user.id &&
+      req.user.role !== "admin"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Only interviewer, candidate, or admin can delete the interview",
+      });
+    }
+
+    // Prevent deletion of interviews that are in progress
+    if (interview.status === 'in-progress') {
+      return res.status(403).json({
+        success: false,
+        message: "Cannot delete interview that is currently in progress",
+      });
+    }
+
+    // Delete associated detection logs
+    await DetectionLog.deleteMany({ interview: interview._id });
+
+    // Delete video file if it exists
+    if (interview.videoRecording && interview.videoRecording.path) {
+      try {
+        await fs.unlink(interview.videoRecording.path);
+      } catch (fileError) {
+        console.warn("Warning: Could not delete video file:", fileError.message);
+      }
+    }
+
+    // Delete the interview
+    await Interview.findByIdAndDelete(req.params.id);
+
+    // Emit real-time event
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`interview-${interview._id}`).emit("interview_deleted", {
+        interviewId: interview._id,
+        message: "Interview has been deleted",
+        timestamp: new Date(),
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Interview deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete interview error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error deleting interview",
     });
   }
 };
@@ -331,5 +462,6 @@ module.exports = {
   getInterview,
   startInterview,
   endInterview,
+  deleteInterview,
   uploadVideo,
 };

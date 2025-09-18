@@ -14,6 +14,7 @@ const CreateInterview = () => {
     candidateEmail: "",
     scheduledAt: "",
     duration: 60,
+    category: "frontend-js",
     settings: {
       enableFocusDetection: true,
       enableObjectDetection: true,
@@ -255,6 +256,34 @@ const CreateInterview = () => {
                   <p className="mt-1 text-sm text-red-600">{errors.duration}</p>
                 )}
               </div>
+            </div>
+
+            {/* Interview Category */}
+            <div>
+              <label
+                htmlFor="category"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Interview Category *
+              </label>
+              <select
+                id="category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+                className={`mt-1 block w-full border rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
+                  errors.category ? "border-red-300" : "border-gray-300"
+                }`}
+              >
+                <option value="frontend-js">Frontend JavaScript</option>
+                <option value="backend-node">Backend Node.js</option>
+                <option value="react">React</option>
+                <option value="python">Python</option>
+                <option value="java">Java</option>
+              </select>
+              {errors.category && (
+                <p className="mt-1 text-sm text-red-600">{errors.category}</p>
+              )}
             </div>
           </div>
 

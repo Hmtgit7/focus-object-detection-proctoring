@@ -61,12 +61,12 @@ const useObjectDetection = () => {
       try {
         const predictions = await model.detect(videoElement, {
           maxNumBoxes: 20,
-          minScore: 0.5,
+          minScore: 0.3, // Lower threshold for better detection
         });
 
         const prohibitedObjects = predictions.filter((prediction) => {
           const className = prediction.class.toLowerCase();
-          return (
+          const isProhibited = (
             className.includes("cell phone") ||
             className.includes("phone") ||
             className.includes("book") ||
@@ -75,6 +75,23 @@ const useObjectDetection = () => {
             className.includes("mouse") ||
             className.includes("remote")
           );
+          
+          if (isProhibited) {
+            console.log("🚫 Prohibited object detected:", {
+              class: prediction.class,
+              confidence: prediction.score,
+              bbox: prediction.bbox
+            });
+          }
+          
+          return isProhibited;
+        });
+
+        console.log("🔍 Object detection results:", {
+          totalPredictions: predictions.length,
+          prohibitedObjects: prohibitedObjects.length,
+          allClasses: predictions.map(p => p.class),
+          prohibitedClasses: prohibitedObjects.map(p => p.class)
         });
 
         return {

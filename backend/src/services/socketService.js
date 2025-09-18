@@ -111,31 +111,40 @@ const initializeSocketService = (io) => {
     });
 
     // Handle detection data
-    socket.on("detection-data", async (data) => {
+    socket.on("detection_event", async (data) => {
       try {
-        const { interviewId, detectionType, data: detectionData, timestamp } = data;
+        console.log("📡 Received detection event:", data);
+        
+        const { interviewId, type, confidence, details, timestamp } = data;
         
         if (!socket.currentInterviewId || socket.currentInterviewId !== interviewId) {
           socket.emit("error", { message: "Not in interview room" });
           return;
         }
 
+        // Determine severity based on type and confidence
+        let severity = "low";
+        if (confidence > 0.8) severity = "high";
+        else if (confidence > 0.6) severity = "medium";
+
         // Log detection data
         const detectionLog = new DetectionLog({
-          interviewId,
-          userId: socket.userId,
-          detectionType,
-          data: detectionData,
+          interview: interviewId,
+          type: type,
+          severity: severity,
+          confidence: confidence || 0,
+          details: details || {},
           timestamp: timestamp || new Date()
         });
 
         await detectionLog.save();
+        console.log("✅ Detection log saved:", detectionLog);
 
         // Broadcast to other participants (admins/interviewers)
         socket.to(`interview-${interviewId}`).emit("detection-update", {
           userId: socket.userId,
-          detectionType,
-          data: detectionData,
+          detectionType: type,
+          data: details,
           timestamp: detectionLog.timestamp
         });
 

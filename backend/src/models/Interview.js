@@ -28,6 +28,11 @@ const interviewSchema = new mongoose.Schema(
       min: [5, "Minimum duration is 5 minutes"],
       max: [180, "Maximum duration is 180 minutes"],
     },
+    category: {
+      type: String,
+      enum: ["frontend-js", "backend-node", "react", "python", "java"],
+      default: "frontend-js",
+    },
     status: {
       type: String,
       enum: ["scheduled", "in-progress", "completed", "cancelled"],

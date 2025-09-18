@@ -8,6 +8,7 @@ const {
   getInterview,
   startInterview,
   endInterview,
+  deleteInterview,
   uploadVideo,
 } = require("../controllers/interviewController");
 const { protect, authorize } = require("../middleware/auth");
@@ -71,6 +72,10 @@ const createInterviewValidation = [
     .optional()
     .isInt({ min: 5000 })
     .withMessage("Absence threshold must be at least 5000ms"),
+  body("category")
+    .optional()
+    .isIn(["frontend-js", "backend-node", "react", "python", "java"])
+    .withMessage("Category must be one of: frontend-js, backend-node, react, python, java"),
 ];
 
 const interviewIdValidation = [
@@ -88,13 +93,21 @@ router
   )
   .get(protect, getInterviews);
 
-router.route("/:id").get(protect, interviewIdValidation, getInterview);
+router
+  .route("/:id")
+  .get(protect, interviewIdValidation, getInterview)
+  .delete(
+    protect,
+    authorize("interviewer", "admin", "candidate"),
+    interviewIdValidation,
+    deleteInterview
+  );
 
 router
   .route("/:id/start")
   .put(
     protect,
-    authorize("interviewer", "admin"),
+    authorize("interviewer", "admin", "candidate"),
     interviewIdValidation,
     startInterview
   );
@@ -103,7 +116,7 @@ router
   .route("/:id/end")
   .put(
     protect,
-    authorize("interviewer", "admin"),
+    authorize("interviewer", "admin", "candidate"),
     interviewIdValidation,
     endInterview
   );

@@ -55,11 +55,19 @@ const useMediaPipe = () => {
       try {
         const detections = faceDetector.detectForVideo(video, timestamp);
 
-        return {
+        const result = {
           faces: detections.detections || [],
           confidence: detections.detections?.[0]?.categories?.[0]?.score || 0,
           timestamp,
         };
+
+        console.log("👤 Face detection result:", {
+          faceCount: result.faces.length,
+          confidence: result.confidence,
+          timestamp: result.timestamp
+        });
+
+        return result;
       } catch (err) {
         console.error("Face detection error:", err);
         return { faces: [], confidence: 0, error: err.message };
@@ -98,14 +106,14 @@ const useMediaPipe = () => {
     const deviationX = Math.abs(centerX - videoCenterX);
     const deviationY = Math.abs(centerY - videoCenterY);
 
-    const maxDeviation = 0.3; // 30% deviation from center
+    const maxDeviation = 0.4; // 40% deviation from center (more lenient)
     const focusScore = Math.max(
       0,
       1 - (deviationX + deviationY) / maxDeviation
     );
 
-    return {
-      isFocused: focusScore > 0.7,
+    const result = {
+      isFocused: focusScore > 0.5, // Lower threshold for focus detection
       faceCount: detections.faces.length,
       focusScore: Math.round(focusScore * 100),
       metrics: {
@@ -119,6 +127,17 @@ const useMediaPipe = () => {
         confidence: detections.confidence,
       },
     };
+
+    console.log("🎯 Focus metrics:", {
+      isFocused: result.isFocused,
+      focusScore: result.focusScore,
+      faceCount: result.faceCount,
+      deviation: result.metrics.gazeDirection.deviation,
+      centerX,
+      centerY
+    });
+
+    return result;
   }, []);
 
   return {

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { interviewAPI } from '../../services/api';
-import { Calendar, Clock, Users, Eye, Trash2, Edit } from 'lucide-react';
+import { Calendar, Clock, Users, Eye, Trash2, Edit, AlertTriangle } from 'lucide-react';
 
 const InterviewList = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +59,59 @@ const InterviewList = () => {
       case 'completed': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const canAccessInterview = (interview) => {
+    // If completed, cannot access interview page
+    if (interview.status === 'completed') {
+      return false;
+    }
+
+    // If cancelled, cannot access
+    if (interview.status === 'cancelled') {
+      return false;
+    }
+
+    // For candidates, check time window
+    if (user.role === 'candidate') {
+      const now = new Date();
+      const scheduledTime = new Date(interview.scheduledAt);
+      const endTime = new Date(scheduledTime.getTime() + interview.duration * 60000);
+
+      // Can only access during scheduled time window
+      return now >= scheduledTime && now <= endTime;
+    }
+
+    // Interviewers and admins can always access non-completed interviews
+    return true;
+  };
+
+  const handleViewInterview = (interview) => {
+    if (interview.status === 'completed') {
+      // Navigate to report for completed interviews
+      navigate(`/reports/${interview._id}`);
+    } else if (canAccessInterview(interview)) {
+      // Navigate to interview page
+      navigate(`/interviews/${interview._id}`);
+    } else {
+      // Show access denied message
+      const now = new Date();
+      const scheduledTime = new Date(interview.scheduledAt);
+      const endTime = new Date(scheduledTime.getTime() + interview.duration * 60000);
+
+      let message = '';
+      if (interview.status === 'cancelled') {
+        message = 'This interview has been cancelled.';
+      } else if (now < scheduledTime) {
+        message = `Interview has not started yet. Scheduled for ${scheduledTime.toLocaleString()}.`;
+      } else if (now > endTime) {
+        message = 'Interview time has expired. The interview window has closed.';
+      } else {
+        message = 'You do not have permission to access this interview.';
+      }
+
+      alert(message);
     }
   };
 
@@ -130,19 +185,30 @@ const InterviewList = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => window.location.href = `/interviews/${interview._id}`}
-                        className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        onClick={() => handleViewInterview(interview)}
+                        className={`inline-flex items-center px-3 py-1 border shadow-sm text-sm leading-4 font-medium rounded-md ${
+                          interview.status === 'completed'
+                            ? 'border-purple-300 text-purple-700 bg-white hover:bg-purple-50'
+                            : canAccessInterview(interview)
+                            ? 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                            : 'border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed'
+                        }`}
+                        disabled={!canAccessInterview(interview) && interview.status !== 'completed'}
                       >
                         <Eye className="h-4 w-4 mr-1" />
-                        View
+                        {interview.status === 'completed' ? 'View Report' : 'View'}
                       </button>
-                      <button
-                        onClick={() => window.location.href = `/interviews/${interview._id}/edit`}
-                        className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </button>
+                      
+                      {interview.status !== 'completed' && interview.status !== 'cancelled' && (
+                        <button
+                          onClick={() => navigate(`/interviews/${interview._id}/edit`)}
+                          className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </button>
+                      )}
+                      
                       <button
                         onClick={() => handleDeleteInterview(interview._id)}
                         className="inline-flex items-center px-3 py-1 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50"
