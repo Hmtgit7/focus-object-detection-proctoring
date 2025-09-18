@@ -26,7 +26,7 @@ const Interview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, hasRole } = useAuth();
-  const { currentInterview, fetchInterview, startInterview, loading, error } = useInterview();
+  const { currentInterview, fetchInterview, startInterview, endInterview, loading, error } = useInterview();
   const { socket, isConnected, joinInterview, leaveInterview } = useSocket();
   
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
@@ -41,22 +41,54 @@ const Interview = () => {
   // Load interview data
   useEffect(() => {
     if (id) {
+      console.log("📋 Fetching interview data for ID:", id);
       fetchInterview(id);
     }
+
+    // Cleanup when component unmounts
+    return () => {
+      console.log("🧹 Cleaning up interview component");
+    };
   }, [id, fetchInterview]);
+
+  // Sync local state with interview status when interview data loads
+  useEffect(() => {
+    if (currentInterview) {
+      console.log("🔄 Syncing local state with interview status:", currentInterview.status);
+      
+      // Update interview status based on server data
+      if (currentInterview.status === 'in-progress') {
+        setIsInterviewStarted(true);
+        setInterviewStatus('in-progress');
+      } else if (currentInterview.status === 'completed') {
+        setIsInterviewStarted(false);
+        setInterviewStatus('completed');
+        // Clear timer if interview is completed
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      } else if (currentInterview.status === 'scheduled') {
+        setIsInterviewStarted(false);
+        setInterviewStatus('waiting');
+      }
+    }
+  }, [currentInterview]);
 
   // Join socket room when interview loads
   useEffect(() => {
     if (currentInterview && isConnected) {
+      console.log("🎯 Joining interview room:", currentInterview._id);
       joinInterview(currentInterview._id);
     }
 
     return () => {
       if (currentInterview) {
+        console.log("🚪 Leaving interview room:", currentInterview._id);
         leaveInterview(currentInterview._id);
       }
     };
-  }, [currentInterview, isConnected, joinInterview, leaveInterview]);
+  }, [currentInterview?._id, isConnected, joinInterview, leaveInterview]);
 
   // Socket event listeners
   useEffect(() => {
@@ -107,10 +139,16 @@ const Interview = () => {
   };
 
   const handleInterviewEnded = (data) => {
+    console.log("🛑 Interview ended via socket:", data);
     setIsInterviewStarted(false);
     setInterviewStatus('completed');
     if (timerRef.current) {
       clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    // Refresh interview data to ensure status is synchronized
+    if (id) {
+      fetchInterview(id);
     }
   };
 
@@ -153,6 +191,45 @@ const Interview = () => {
     }
   };
 
+  const handleEndInterview = async () => {
+    console.log("🛑 Attempting to end interview:", {
+      currentInterview: currentInterview?._id,
+      hasRoleInterviewer: hasRole('interviewer'),
+      isInterviewStarted,
+      interviewStatus
+    });
+    
+    if (currentInterview && hasRole('interviewer')) {
+      try {
+        const result = await endInterview(currentInterview._id);
+        console.log("🛑 End interview result:", result);
+        
+        if (result.success) {
+          setIsInterviewStarted(false);
+          setInterviewStatus('completed');
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+          }
+          console.log("✅ Interview ended successfully");
+          // Refresh interview data to ensure status is synchronized
+          if (id) {
+            fetchInterview(id);
+          }
+        } else {
+          console.error("❌ Failed to end interview:", result.error);
+        }
+      } catch (error) {
+        console.error("❌ Error ending interview:", error);
+      }
+    } else {
+      console.warn("⚠️ Cannot end interview - missing requirements:", {
+        hasCurrentInterview: !!currentInterview,
+        hasRoleInterviewer: hasRole('interviewer')
+      });
+    }
+  };
+
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -169,6 +246,26 @@ const Interview = () => {
     const maxDuration = currentInterview.duration * 60; // Convert to seconds
     return Math.min((interviewTimer / maxDuration) * 100, 100);
   };
+
+  console.log("🔍 Interview page state:", { 
+    loading, 
+    error, 
+    currentInterview: currentInterview ? { 
+      id: currentInterview._id, 
+      title: currentInterview.title,
+      status: currentInterview.status,
+      interviewer: currentInterview.interviewer,
+      candidate: currentInterview.candidate
+    } : null, 
+    isConnected,
+    interviewId: id,
+    user: user ? { id: user._id, name: user.name, role: user.role } : null,
+    hasRoleInterviewer: hasRole('interviewer'),
+    isInterviewStarted,
+    interviewStatus,
+    canControl: hasRole('interviewer'),
+    shouldShowStartButton: hasRole('interviewer') && !isInterviewStarted
+  });
 
   if (loading) {
     return <Loading fullScreen text="Loading interview..." />;
@@ -289,6 +386,7 @@ const Interview = () => {
               interview={currentInterview}
               isStarted={isInterviewStarted}
               onStart={handleStartInterview}
+              onEnd={handleEndInterview}
               canControl={hasRole('interviewer')}
               status={interviewStatus}
             />
@@ -348,8 +446,18 @@ const Interview = () => {
         </div>
       </div>
 
+
       {/* Pre-interview Setup Modal */}
-      {!isInterviewStarted && interviewStatus === 'waiting' && hasRole('interviewer') && (
+      {(() => {
+        const shouldShowModal = !isInterviewStarted && interviewStatus === 'waiting' && hasRole('interviewer');
+        console.log("🔍 Modal condition check:", { 
+          isInterviewStarted, 
+          interviewStatus, 
+          hasRoleInterviewer: hasRole('interviewer'),
+          shouldShowModal 
+        });
+        return shouldShowModal;
+      })() && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">

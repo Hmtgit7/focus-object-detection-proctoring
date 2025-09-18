@@ -199,12 +199,13 @@ const startInterview = async (req, res) => {
 
     // Update interview status
     interview.status = "in-progress";
+    interview.startedAt = new Date();
     await interview.save();
 
     // Emit real-time event
     const io = req.app.get("io");
     if (io) {
-      io.to(`interview_${interview._id}`).emit("interview_started", {
+      io.to(`interview-${interview._id}`).emit("interview_started", {
         interviewId: interview._id,
         message: "Interview has started",
         timestamp: new Date(),
@@ -221,6 +222,60 @@ const startInterview = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error starting interview",
+    });
+  }
+};
+
+// @desc    End interview (update status)
+// @route   PUT /api/interviews/:id/end
+// @access  Private
+const endInterview = async (req, res) => {
+  try {
+    const interview = await Interview.findById(req.params.id);
+
+    if (!interview) {
+      return res.status(404).json({
+        success: false,
+        message: "Interview not found",
+      });
+    }
+
+    // Check access permissions
+    if (
+      interview.interviewer.toString() !== req.user.id &&
+      req.user.role !== "admin"
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Only interviewer can end the interview",
+      });
+    }
+
+    // Update interview status
+    interview.status = "completed";
+    interview.endedAt = new Date();
+    await interview.save();
+
+    // Emit real-time event
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`interview-${interview._id}`).emit("interview_ended", {
+        interviewId: interview._id,
+        message: "Interview has ended",
+        timestamp: new Date(),
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Interview ended successfully",
+      interview,
+    });
+  } catch (error) {
+    console.error("End interview error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error ending interview",
     });
   }
 };
@@ -275,5 +330,6 @@ module.exports = {
   getInterviews,
   getInterview,
   startInterview,
+  endInterview,
   uploadVideo,
 };

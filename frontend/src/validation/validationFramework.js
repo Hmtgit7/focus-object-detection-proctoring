@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useReducer,
-  useCallback,
-} from "react";
+import React, { createContext, useContext, useReducer, useCallback } from "react";
 import { interviewAPI, handleAPIError } from "../services/api";
 
 // Interview state
@@ -46,7 +41,6 @@ const INTERVIEW_ACTIONS = {
 const interviewReducer = (state, action) => {
   switch (action.type) {
     case INTERVIEW_ACTIONS.SET_LOADING:
-      console.log("🔄 Setting loading state:", action.payload);
       return { ...state, loading: action.payload };
 
     case INTERVIEW_ACTIONS.SET_ERROR:
@@ -64,8 +58,7 @@ const interviewReducer = (state, action) => {
       };
 
     case INTERVIEW_ACTIONS.SET_CURRENT_INTERVIEW:
-      console.log("🔄 Setting current interview:", action.payload ? { id: action.payload._id, title: action.payload.title } : null);
-      return { ...state, currentInterview: action.payload, loading: false };
+      return { ...state, currentInterview: action.payload };
 
     case INTERVIEW_ACTIONS.ADD_INTERVIEW:
       return {
@@ -104,10 +97,7 @@ const interviewReducer = (state, action) => {
       };
 
     case INTERVIEW_ACTIONS.SET_PAGINATION:
-      return {
-        ...state,
-        pagination: { ...state.pagination, ...action.payload },
-      };
+      return { ...state, pagination: action.payload };
 
     case INTERVIEW_ACTIONS.SET_FILTERS:
       return { ...state, filters: { ...state.filters, ...action.payload } };
@@ -120,10 +110,10 @@ const interviewReducer = (state, action) => {
   }
 };
 
-// Create context
-const InterviewContext = createContext(null);
+// Context
+const InterviewContext = createContext();
 
-// Provider component
+// Provider
 export const InterviewProvider = ({ children }) => {
   const [state, dispatch] = useReducer(interviewReducer, initialState);
 
@@ -135,9 +125,9 @@ export const InterviewProvider = ({ children }) => {
       try {
         const queryParams = {
           ...state.filters,
-          page: state.pagination.page,
-          limit: state.pagination.limit,
           ...params,
+          page: params.page || state.pagination.page,
+          limit: params.limit || state.pagination.limit,
         };
 
         const response = await interviewAPI.getAll(queryParams);
@@ -164,19 +154,15 @@ export const InterviewProvider = ({ children }) => {
 
   // Fetch single interview
   const fetchInterview = useCallback(async (interviewId) => {
-    console.log("🔍 Starting to fetch interview:", interviewId);
     dispatch({ type: INTERVIEW_ACTIONS.SET_LOADING, payload: true });
 
     try {
-      console.log("📡 Making API call to fetch interview...");
       const response = await interviewAPI.getById(interviewId);
-      console.log("✅ Interview data received:", response.data);
       dispatch({
         type: INTERVIEW_ACTIONS.SET_CURRENT_INTERVIEW,
         payload: response.data.interview,
       });
     } catch (error) {
-      console.error("❌ Error fetching interview:", error);
       const errorData = handleAPIError(error);
       dispatch({
         type: INTERVIEW_ACTIONS.SET_ERROR,
@@ -269,50 +255,17 @@ export const InterviewProvider = ({ children }) => {
     }
   }, []);
 
-  // End interview
-  const endInterview = useCallback(async (interviewId) => {
-    console.log("🛑 InterviewContext: Ending interview:", interviewId);
-    dispatch({ type: INTERVIEW_ACTIONS.SET_LOADING, payload: true });
-
-    try {
-      console.log("📡 InterviewContext: Making API call to end interview...");
-      const response = await interviewAPI.end(interviewId);
-      console.log("✅ InterviewContext: End interview API response:", response.data);
-      
-      dispatch({
-        type: INTERVIEW_ACTIONS.UPDATE_INTERVIEW,
-        payload: response.data.interview,
-      });
-      return { success: true, interview: response.data.interview };
-    } catch (error) {
-      console.error("❌ InterviewContext: Error ending interview:", error);
-      const errorData = handleAPIError(error);
-      dispatch({
-        type: INTERVIEW_ACTIONS.SET_ERROR,
-        payload: errorData.message,
-      });
-      return { success: false, error: errorData.message };
-    }
-  }, []);
-
   // Set filters
   const setFilters = useCallback((filters) => {
-    dispatch({ type: INTERVIEW_ACTIONS.SET_FILTERS, payload: filters });
-  }, []);
-
-  // Set pagination
-  const setPagination = useCallback((pagination) => {
-    dispatch({ type: INTERVIEW_ACTIONS.SET_PAGINATION, payload: pagination });
+    dispatch({
+      type: INTERVIEW_ACTIONS.SET_FILTERS,
+      payload: filters,
+    });
   }, []);
 
   // Clear error
   const clearError = useCallback(() => {
     dispatch({ type: INTERVIEW_ACTIONS.CLEAR_ERROR });
-  }, []);
-
-  // Clear current interview
-  const clearCurrentInterview = useCallback(() => {
-    dispatch({ type: INTERVIEW_ACTIONS.SET_CURRENT_INTERVIEW, payload: null });
   }, []);
 
   // Reset state
@@ -328,11 +281,8 @@ export const InterviewProvider = ({ children }) => {
     updateInterview,
     deleteInterview,
     startInterview,
-    endInterview,
     setFilters,
-    setPagination,
     clearError,
-    clearCurrentInterview,
     resetState,
   };
 
@@ -343,15 +293,24 @@ export const InterviewProvider = ({ children }) => {
   );
 };
 
-// Hook to use interview context
+// Hook
 export const useInterview = () => {
   const context = useContext(InterviewContext);
-
   if (!context) {
     throw new Error("useInterview must be used within an InterviewProvider");
   }
-
   return context;
 };
 
-export default InterviewContext;
+// Export types for TypeScript
+export const ValidationMethod = {
+  WALK_FORWARD: "walk_forward",
+  MONTE_CARLO: "monte_carlo",
+  CROSS_VALIDATION: "cross_validation",
+};
+
+export const WalkForwardConfig = {
+  INITIAL_TRAINING_SIZE: 0.7,
+  STEP_SIZE: 0.1,
+  MIN_TRAINING_SIZE: 0.5,
+};

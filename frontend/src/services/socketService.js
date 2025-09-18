@@ -13,6 +13,13 @@ class SocketService {
       return this.socket;
     }
 
+    // Disconnect existing socket if any
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+      this.isConnected = false;
+    }
+
     const serverUrl =
       process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
 
@@ -24,6 +31,7 @@ class SocketService {
       reconnectionDelay: 1000,
       reconnectionAttempts: 5,
       timeout: 20000,
+      forceNew: true, // Force new connection
     });
 
     this.setupEventListeners();
@@ -42,6 +50,7 @@ class SocketService {
 
     this.socket.on("disconnect", (reason) => {
       console.log("❌ Socket disconnected:", reason);
+      console.log("🔍 Disconnect stack trace:", new Error().stack);
       this.isConnected = false;
       this.emit("connection_status", { connected: false, reason });
     });
@@ -189,6 +198,7 @@ class SocketService {
   disconnect() {
     if (this.socket) {
       console.log("🔌 Disconnecting socket");
+      console.log("🔍 Disconnect call stack:", new Error().stack);
       this.socket.disconnect();
       this.socket = null;
       this.isConnected = false;

@@ -13,12 +13,14 @@ const useSocket = () => {
     if (isAuthenticated && user) {
       const token = localStorage.getItem("authToken");
       if (token) {
+        console.log("🔌 Initializing socket connection...");
         socketService.connect(token);
       }
     }
 
     return () => {
       if (!isAuthenticated) {
+        console.log("🔌 Disconnecting socket...");
         socketService.disconnect();
       }
     };

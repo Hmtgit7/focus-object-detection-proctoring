@@ -77,7 +77,7 @@ const EditInterview = () => {
       setError(null);
       
       await interviewAPI.update(id, interview);
-      navigate(`/interview/${id}`);
+      navigate(`/interviews/${id}`);
     } catch (err) {
       setError('Failed to update interview');
       console.error('Error updating interview:', err);

@@ -232,7 +232,7 @@ const VideoStream = ({ interviewId, isInterviewer = false }) => {
         <video
           ref={videoRef}
           autoPlay
-          muted={isInterviewer}
+          muted={false}
           playsInline
           className="w-full h-auto max-h-96 object-cover"
         />

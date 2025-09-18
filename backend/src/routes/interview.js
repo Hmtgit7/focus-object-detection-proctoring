@@ -7,6 +7,7 @@ const {
   getInterviews,
   getInterview,
   startInterview,
+  endInterview,
   uploadVideo,
 } = require("../controllers/interviewController");
 const { protect, authorize } = require("../middleware/auth");
@@ -96,6 +97,15 @@ router
     authorize("interviewer", "admin"),
     interviewIdValidation,
     startInterview
+  );
+
+router
+  .route("/:id/end")
+  .put(
+    protect,
+    authorize("interviewer", "admin"),
+    interviewIdValidation,
+    endInterview
   );
 
 router

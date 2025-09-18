@@ -20,6 +20,15 @@ const InterviewControls = ({
   canControl = false,
   status = "waiting",
 }) => {
+  console.log("🎮 InterviewControls props:", { 
+    isStarted, 
+    canControl, 
+    status, 
+    interviewId: interview?._id,
+    interviewStatus: interview?.status,
+    shouldShowStartButton: canControl && !isStarted,
+    hasRoleInterviewer: canControl
+  });
   const [showSettings, setShowSettings] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 

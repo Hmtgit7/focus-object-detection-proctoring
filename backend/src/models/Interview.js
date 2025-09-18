@@ -33,6 +33,12 @@ const interviewSchema = new mongoose.Schema(
       enum: ["scheduled", "in-progress", "completed", "cancelled"],
       default: "scheduled",
     },
+    startedAt: {
+      type: Date,
+    },
+    endedAt: {
+      type: Date,
+    },
     videoRecording: {
       filename: String,
       path: String,

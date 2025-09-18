@@ -50,11 +50,12 @@ const initializeSocketService = (io) => {
           return;
         }
 
-        // Check if user is participant or admin
-        const isParticipant = interview.participants.some(p => p.userId.toString() === socket.userId);
-        const isAdmin = socket.userRole === "admin" || socket.userRole === "interviewer";
+        // Check if user is participant (candidate or interviewer) or admin
+        const isCandidate = interview.candidate.toString() === socket.userId;
+        const isInterviewer = interview.interviewer.toString() === socket.userId;
+        const isAdmin = socket.userRole === "admin";
         
-        if (!isParticipant && !isAdmin) {
+        if (!isCandidate && !isInterviewer && !isAdmin) {
           socket.emit("error", { message: "Access denied to this interview" });
           return;
         }
@@ -62,13 +63,13 @@ const initializeSocketService = (io) => {
         socket.join(`interview-${interviewId}`);
         socket.currentInterviewId = interviewId;
         
-        socket.emit("joined-interview", { 
+        socket.emit("joined_interview", { 
           interviewId, 
           message: "Successfully joined interview room" 
         });
 
         // Notify other participants
-        socket.to(`interview-${interviewId}`).emit("participant-joined", {
+        socket.to(`interview-${interviewId}`).emit("user_joined", {
           userId: socket.userId,
           timestamp: new Date().toISOString()
         });
@@ -76,6 +77,36 @@ const initializeSocketService = (io) => {
       } catch (error) {
         console.error("Join interview error:", error);
         socket.emit("error", { message: "Failed to join interview" });
+      }
+    });
+
+    // Handle leave interview
+    socket.on("leave_interview", async (data) => {
+      try {
+        const { interviewId } = data;
+        
+        if (!interviewId) {
+          socket.emit("error", { message: "Interview ID is required" });
+          return;
+        }
+
+        socket.leave(`interview-${interviewId}`);
+        socket.currentInterviewId = null;
+        
+        socket.emit("left_interview", { 
+          interviewId, 
+          message: "Successfully left interview room" 
+        });
+
+        // Notify other participants
+        socket.to(`interview-${interviewId}`).emit("user_left", {
+          userId: socket.userId,
+          timestamp: new Date().toISOString()
+        });
+
+      } catch (error) {
+        console.error("Leave interview error:", error);
+        socket.emit("error", { message: "Failed to leave interview" });
       }
     });
 

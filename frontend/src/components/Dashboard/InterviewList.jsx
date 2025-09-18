@@ -130,14 +130,14 @@ const InterviewList = () => {
                     </div>
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => window.location.href = `/interview/${interview._id}`}
+                        onClick={() => window.location.href = `/interviews/${interview._id}`}
                         className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </button>
                       <button
-                        onClick={() => window.location.href = `/interview/${interview._id}/edit`}
+                        onClick={() => window.location.href = `/interviews/${interview._id}/edit`}
                         className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                       >
                         <Edit className="h-4 w-4 mr-1" />
